@@ -1,0 +1,97 @@
+/* --- Estil general --- */
+body {
+  font-family: "Inter", Arial, sans-serif;
+  background: #f2f3f7;
+  margin: 0;
+  padding: 0;
+  color: #222;
+}
+
+header {
+  text-align: center;
+  padding: 40px 20px 10px;
+  background: linear-gradient(180deg, #007bff, #0056b3);
+  color: white;
+  border-bottom: 3px solid #004a99;
+}
+
+header img {
+  width: 80px;
+  opacity: 0.95;
+  margin-bottom: 10px;
+}
+
+h2 {
+  margin: 0;
+  font-weight: 600;
+}
+
+main {
+  max-width: 900px;
+  background: white;
+  margin: 40px auto;
+  padding: 30px 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+pre {
+  background: #f8f9fa;
+  padding: 10px 15px;
+  border-left: 4px solid #007bff;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+textarea {
+  width: 100%;
+  font-size: 1rem;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  resize: vertical;
+}
+
+label {
+  margin-top: 10px;
+  display: block;
+  font-weight: 500;
+}
+
+button {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background: #0056b3;
+}
+
+.resultat {
+  margin-top: 20px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  color: #333;
+}
+
+canvas {
+  margin-top: 25px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+}
+
+footer {
+  text-align: center;
+  padding: 15px 0;
+  color: #777;
+  font-size: 0.9rem;
+}
