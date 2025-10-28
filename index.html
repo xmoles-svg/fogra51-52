@@ -1,123 +1,107 @@
 <!DOCTYPE html>
 <html lang="ca">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comparador FOGRA51 – Guany de Punt</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    max-width: 900px;
-    margin: 40px auto;
-    line-height: 1.5;
-  }
-  h2 { color: #333; }
-  textarea, select, button {
-    margin-top: 10px;
-    width: 100%;
-    font-size: 1rem;
-  }
-  button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 10px;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  button:hover { background-color: #0056b3; }
-  canvas { margin-top: 30px; }
-  .resultat { margin-top: 20px; font-weight: bold; font-size: 1.1rem; }
-  pre {
-    background-color: #f7f7f7;
-    padding: 10px;
-    border-radius: 5px;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comparador FOGRA51 – Guany de Punt</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-
 <body>
-<h2>Comparació amb l’estàndard FOGRA51</h2>
 
-<p>Introdueix les teves lectures de guany de punt (TVI) separades per comes, seguint aquest format:</p>
-<pre>
+  <header>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Color_wheel_subtractive.svg/120px-Color_wheel_subtractive.svg.png" alt="Color CMYK">
+    <h2>Comparació amb l’estàndard FOGRA51</h2>
+  </header>
+
+  <main>
+    <p>
+      Introdueix les teves lectures de guany de punt (TVI) separades per comes, seguint aquest format:
+    </p>
+
+    <pre>
 Percentatges: 0,10,20,30,40,50,60,70,80,90,100
 Valors mesurats: 0,14,28,37,46,53,58,62,65,67,100
-</pre>
+    </pre>
 
-<label for="canal">Canal:</label>
-<select id="canal">
-  <option value="C">Cian</option>
-  <option value="M">Magenta</option>
-  <option value="Y">Groc</option>
-  <option value="K">Negre</option>
-</select>
+    <label for="canal">Canal:</label>
+    <select id="canal">
+      <option value="C">Cian</option>
+      <option value="M">Magenta</option>
+      <option value="Y">Groc</option>
+      <option value="K">Negre</option>
+    </select>
 
-<textarea id="lectures" rows="6" placeholder="Introdueix aquí els valors mesurats..."></textarea>
-<button onclick="comparar()">Comparar amb FOGRA51</button>
+    <textarea id="lectures" rows="6" placeholder="Introdueix aquí els valors mesurats..."></textarea>
 
-<canvas id="grafica"></canvas>
-<div id="resultat" class="resultat"></div>
+    <button onclick="comparar()">Comparar amb FOGRA51</button>
 
-<script>
-// Valors oficials de guany de punt (TVI) per FOGRA51
-const fogra51 = {
-  "C": [0,15,27,37,45,52,57,61,64,67,100],
-  "M": [0,17,29,39,47,54,59,63,66,68,100],
-  "Y": [0,13,25,35,43,49,54,58,61,63,100],
-  "K": [0,18,30,39,47,54,59,63,66,68,100]
-};
+    <canvas id="grafica"></canvas>
+    <div id="resultat" class="resultat"></div>
+  </main>
 
-function comparar() {
-  const canal = document.getElementById('canal').value;
-  const text = document.getElementById('lectures').value.trim().split('\n');
-  if (text.length < 2) {
-    alert("Has d'introduir dues línies: percentatges i valors mesurats.");
-    return;
-  }
+  <footer>
+    <p>© 2025 Comparador FOGRA51 – Desenvolupat per xmoles-svg</p>
+  </footer>
 
-  const percent = text[0].split(',').map(Number);
-  const mesurat = text[1].split(',').map(Number);
-  const ref = fogra51[canal];
+  <script>
+    // Valors oficials FOGRA51 (TVI)
+    const fogra51 = {
+      "C": [0,15,27,37,45,52,57,61,64,67,100],
+      "M": [0,17,29,39,47,54,59,63,66,68,100],
+      "Y": [0,13,25,35,43,49,54,58,61,63,100],
+      "K": [0,18,30,39,47,54,59,63,66,68,100]
+    };
 
-  if (percent.length !== ref.length || mesurat.length !== ref.length) {
-    alert("Els valors han de tenir 11 punts: 0–100% en increments de 10.");
-    return;
-  }
+    function comparar() {
+      const canal = document.getElementById('canal').value;
+      const text = document.getElementById('lectures').value.trim().split('\n');
 
-  const diff = mesurat.map((v, i) => v - ref[i]);
-
-  const ctx = document.getElementById('grafica');
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: percent,
-      datasets: [
-        { label: 'Mesurat', data: mesurat, borderColor: '#007bff', tension: 0.2 },
-        { label: 'FOGRA51', data: ref, borderColor: '#666', borderDash: [5,5], tension: 0.2 },
-        { label: 'ΔTVI (mesurat - estàndard)', data: diff, borderColor: 'red', tension: 0.2, yAxisID: 'diff' }
-      ]
-    },
-    options: {
-      scales: {
-        y: { beginAtZero: true, title: { display: true, text: 'Guany de punt (%)' } },
-        diff: { position: 'right', title: { display: true, text: 'Diferència' } }
-      },
-      plugins: {
-        legend: { position: 'bottom' }
+      if (text.length < 2) {
+        alert("Has d'introduir dues línies: percentatges i valors mesurats.");
+        return;
       }
-    }
-  });
 
-  // Valoració ISO
-  const maxDiff = Math.max(...diff.map(d => Math.abs(d)));
-  const resultat = document.getElementById('resultat');
-  if (maxDiff <= 3)
-    resultat.textContent = "✅ Dins tolerància ISO (±3%)";
-  else
-    resultat.textContent = "⚠️ Fora de tolerància (diferència màxima " + maxDiff.toFixed(1) + "%)";
-}
-</script>
+      const percent = text[0].split(',').map(Number);
+      const mesurat = text[1].split(',').map(Number);
+      const ref = fogra51[canal];
+
+      if (percent.length !== ref.length || mesurat.length !== ref.length) {
+        alert("Els valors han de tenir 11 punts: 0–100% en increments de 10.");
+        return;
+      }
+
+      const diff = mesurat.map((v, i) => v - ref[i]);
+
+      const ctx = document.getElementById('grafica').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: percent,
+          datasets: [
+            { label: 'Mesurat', data: mesurat, borderColor: '#007bff', tension: 0.2 },
+            { label: 'FOGRA51', data: ref, borderColor: '#666', borderDash: [5,5], tension: 0.2 },
+            { label: 'ΔTVI (mesurat - estàndard)', data: diff, borderColor: 'red', tension: 0.2, yAxisID: 'diff' }
+          ]
+        },
+        options: {
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Guany de punt (%)' } },
+            diff: { position: 'right', title: { display: true, text: 'Diferència' } }
+          },
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+
+      const maxDiff = Math.max(...diff.map(d => Math.abs(d)));
+      const resultat = document.getElementById('resultat');
+      if (maxDiff <= 3)
+        resultat.textContent = "✅ Dins tolerància ISO (±3%)";
+      else
+        resultat.textContent = "⚠️ Fora de tolerància (diferència màxima " + maxDiff.toFixed(1) + "%)";
+    }
+  </script>
+
 </body>
 </html>
+
