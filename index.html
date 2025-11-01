@@ -1,78 +1,50 @@
 <!DOCTYPE html>
 <html lang="ca">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Comparador TVI · ECI 20–100</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Comparador TVI · ECI vs FOGRA51</title>
+  <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    /* per si no et pilla el style.css */
-    body { background:#eef1f4; margin:0; font-family:system-ui, -apple-system, Arial, sans-serif;}
-    main { max-width: 1000px; margin: 30px auto 60px; }
-    .bloc { background:#fff; margin-bottom:25px; padding:25px 28px; border-radius:14px; box-shadow:0 4px 18px rgba(0,0,0,.03);}
-    button { background:#0d6efd; color:#fff; border:none; padding:11px 14px; border-radius:6px; cursor:pointer; width:100%; font-weight:600;}
-    button:hover { background:#0b5ed7; }
-    textarea { width:100%; min-height:90px; }
-    .grid { display:flex; gap:12px; margin-bottom:12px; }
-    .grid > div { flex:1; }
-    .canvas-wrapper, .canvas-wrapper-sm { background:#fff; }
-    .canvas-wrapper canvas, .canvas-wrapper-sm canvas { width:100% !important; max-height:360px; }
-    .canvas-wrapper-sm canvas { max-height:240px; }
-    header { text-align:center; padding:20px 12px 0; }
-    footer { text-align:center; color:#777; padding-bottom:40px; }
-    @media (max-width:720px){ .grid{flex-direction:column;} }
-  </style>
 </head>
 <body>
   <header>
-    <h1>Comparació de guany de punt (TVI)</h1>
-    <p>Tira ECI curta · punts 20, 40, 60, 80, 100</p>
+    <h1>Comparador TVI · ECI → FOGRA51</h1>
+    <p>Introdueix les lectures de la tira ECI (20, 40, 60, 80, 100) i el canal.</p>
   </header>
 
   <main>
-    <section class="bloc">
-      <p><strong>Format d’entrada (2 línies):</strong></p>
-      <pre>
-20,40,60,80,100
-27,45,57,64,100
-      </pre>
+    <section class="panel">
+      <label for="canal">Canal:</label>
+      <select id="canal">
+        <option value="C">Cian</option>
+        <option value="M">Magenta</option>
+        <option value="Y">Groc</option>
+        <option value="K">Negre</option>
+      </select>
 
-      <div class="grid">
-        <div>
-          <label for="estandard">Estàndard</label>
-          <select id="estandard">
-            <option value="FOGRA51" selected>FOGRA51 (coated)</option>
-            <option value="FOGRA52">FOGRA52 (uncoated)</option>
-          </select>
-        </div>
-        <div>
-          <label for="canal">Canal</label>
-          <select id="canal">
-            <option value="C">Cian</option>
-            <option value="M">Magenta</option>
-            <option value="Y">Groc</option>
-            <option value="K">Negre</option>
-          </select>
-        </div>
-      </div>
+      <label for="perc">Percentatges llegits (tira ECI):</label>
+      <!-- només els 5 punts -->
+      <textarea id="perc" rows="1">20,40,60,80,100</textarea>
 
-      <textarea id="lectures">20,40,60,80,100
-27,45,57,64,100</textarea>
-      <button onclick="comparar()">Comparar</button>
-      <p class="nota">* Pots posar només 20,40,60,80,100. El 0% ja l'afegim nosaltres.</p>
+      <label for="vals">Valors TVI mesurats (%):</label>
+      <textarea id="vals" rows="2">16,30,45,58,100</textarea>
+
+      <p class="nota">* Pots posar 3, 4 o 5 punts. El sistema completa 0-100 automàticament.</p>
+
+      <button id="btn">Comparar</button>
     </section>
 
-    <section class="bloc">
-      <h2>Corba TVI (guany de punt)</h2>
-      <div class="canvas-wrapper">
+    <section class="panel">
+      <h2>Corba TVI</h2>
+      <div class="chart-box">
         <canvas id="tviChart"></canvas>
       </div>
     </section>
 
-    <section class="bloc">
+    <section class="panel">
       <h2>Diferència TVI (mesurat – estàndard)</h2>
-      <div class="canvas-wrapper-sm">
+      <div class="chart-box">
         <canvas id="diffChart"></canvas>
       </div>
       <div id="resultat" class="resultat"></div>
@@ -82,148 +54,182 @@
   <footer>© 2025 · xmoles-svg</footer>
 
   <script>
-    // referència ECI curta (valors IMPRESOS) 20-40-60-80-100
-    const TVI_REF = {
-      FOGRA51: {
-        C: [27,45,57,64,100],
-        M: [29,47,59,66,100],
-        Y: [25,43,54,61,100],
-        K: [30,47,59,66,100]
-      },
-      FOGRA52: {
-        C: [26,44,56,63,100],
-        M: [28,46,58,65,100],
-        Y: [24,42,53,60,100],
-        K: [29,46,58,65,100]
-      }
-    };
+    // 11 punts que usa FOGRA
+    const TARGET = [0,10,20,30,40,50,60,70,80,90,100];
 
-    // nominal real que volem veure al gràfic
-    const NOMINALS_BASE = [0,20,40,60,80,100];   // <- aquí ja hi ha el 0
+    // FOGRA51 aproximat (pots ajustar-lo després)
+    const FOGRA51 = {
+      "C": [0,15,27,37,45,52,57,61,64,67,100],
+      "M": [0,17,29,39,47,54,59,63,66,68,100],
+      "Y": [0,13,25,35,43,49,54,58,61,63,100],
+      "K": [0,18,30,39,47,54,59,63,66,68,100]
+    };
 
     let tviChart = null;
     let diffChart = null;
 
-    function comparar() {
-      const estandard = document.getElementById('estandard').value;
+    // completa 0..100 a partir de 20,40,60,80,100 (o els que hi hagi)
+    function expandToTarget(userPerc, userVals) {
+      // pas 1: parelles i ordena
+      const pairs = userPerc.map((p,i)=>({p: Number(p), v: Number(userVals[i])}))
+                            .filter(o => !Number.isNaN(o.p) && !Number.isNaN(o.v))
+                            .sort((a,b)=>a.p-b.p);
+
+      // assegura 0 i 100 al conjunt de referència per poder interpolar
+      if (!pairs.find(o => o.p === 0)) {
+        pairs.unshift({p:0, v:0});
+      }
+      if (!pairs.find(o => o.p === 100)) {
+        const last = pairs[pairs.length-1];
+        // si l’últim no és 100, assumim 100 → 100 (tinta plena)
+        if (last.p !== 100) pairs.push({p:100, v:100});
+      }
+
+      // pas 2: per a cada punt 0..100 fem interpolació lineal
+      const out = TARGET.map(t => {
+        // si hi ha un punt exacte, l’agafem
+        const exact = pairs.find(o => o.p === t);
+        if (exact) return exact.v;
+
+        // busquem el punt inferior i superior
+        let lower = null, upper = null;
+        for (let i=0; i<pairs.length-1; i++) {
+          const a = pairs[i];
+          const b = pairs[i+1];
+          if (a.p < t && t < b.p) {
+            lower = a; upper = b;
+            break;
+          }
+        }
+        if (!lower) return pairs[0].v;
+        if (!upper) return pairs[pairs.length-1].v;
+
+        // interpolació lineal
+        const ratio = (t - lower.p) / (upper.p - lower.p);
+        return lower.v + ratio * (upper.v - lower.v);
+      });
+
+      return out;
+    }
+
+    function buildCharts() {
       const canal = document.getElementById('canal').value;
+      const perc = document.getElementById('perc').value.split(',').map(s=>s.trim()).filter(Boolean);
+      const vals = document.getElementById('vals').value.split(',').map(s=>s.trim()).filter(Boolean);
 
-      const linies = document.getElementById('lectures').value.trim().split('\n');
-      if (linies.length < 2) {
-        alert("Posa 2 línies: 1a = 20,40,60,80,100 · 2a = valors mesurats");
+      if (perc.length !== vals.length) {
+        alert("Mateix número de percentatges i valors, si us plau.");
         return;
       }
 
-      // l’usuari dona 5 valors -> els passem a 6 afegint el 0 al davant
-      const percentUser = linies[0].split(',').map(v => Number(v.trim()));
-      const mesuratUser = linies[1].split(',').map(v => Number(v.trim()));
+      const mesurat11 = expandToTarget(perc, vals);   // 11 punts
+      const estandard = FOGRA51[canal];
+      const diff = mesurat11.map((v,i)=> +(v - estandard[i]).toFixed(2));
 
-      if (percentUser.length !== 5 || mesuratUser.length !== 5) {
-        alert("Han de ser 5 valors (20,40,60,80,100). El 0% ja el poso jo.");
-        return;
-      }
-
-      // fem arrays de 6 punts
-      const percent = [0, ...percentUser];              // 0,20,40,60,80,100
-      const mesurat = [0, ...mesuratUser];             // 0,27,45,...
-      const refAbs5 = TVI_REF[estandard][canal];       // 5 valors
-      const refAbs = [0, ...refAbs5];                  // 0,27,45,...
-
-      // TVI = imprès - nominal
-      const tviMesurat = mesurat.map((v, i) => v - NOMINALS_BASE[i]);
-      const tviRef     = refAbs.map((v, i) => v - NOMINALS_BASE[i]);
-
-      // diferències
-      const diff = tviMesurat.map((v, i) => v - tviRef[i]);
-      const maxDiff = Math.max(...diff.map(d => Math.abs(d)));
-
-      // GRÀFIC TVI
+      // gràfica TVI
       const ctx1 = document.getElementById('tviChart').getContext('2d');
       if (tviChart) tviChart.destroy();
       tviChart = new Chart(ctx1, {
         type: 'line',
         data: {
-          labels: NOMINALS_BASE, // 0..100
+          labels: TARGET,
           datasets: [
             {
-              label: 'TVI mesurat',
-              data: tviMesurat,
-              borderColor: '#0066ff',
-              backgroundColor: 'rgba(0,102,255,0.07)',
-              tension: 0.45,
+              label: 'Mesurat',
+              data: mesurat11,
+              borderColor: '#1864ab',
+              backgroundColor: 'rgba(24,100,171,0.12)',
               pointRadius: 4,
-              pointHoverRadius: 6
+              pointBackgroundColor: '#fff',
+              pointBorderColor: '#1864ab',
+              tension: 0.4      // fa la corba “com la teva”
             },
             {
-              label: estandard + ' (' + canal + ')',
-              data: tviRef,
+              label: 'FOGRA51 ('+canal+')',
+              data: estandard,
               borderColor: '#888',
-              borderDash: [5,5],
-              tension: 0.45,
-              pointRadius: 3
+              borderDash: [4,3],
+              pointRadius: 2,
+              tension: 0.4
             }
           ]
         },
         options: {
           responsive: true,
-          maintainAspectRatio: false,
-          aspectRatio: 2.1,
-          scales: {
-            y: {
-              title: { display: true, text: 'Guany de punt (%)' },
-              suggestedMin: 0,
-              suggestedMax: 25
-            },
-            x: {
-              title: { display: true, text: 'Trama nominal (%)' }
-            }
-          },
+          maintainAspectRatio: true,
+          aspectRatio: 1.8,
           plugins: {
             legend: { position: 'bottom' }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Guany de punt (%)' }
+            },
+            x: {
+              title: { display: true, text: 'Percentatge (%)' }
+            }
           }
         }
       });
 
-      // GRÀFIC DIFERÈNCIA
+      // gràfica diferència
       const ctx2 = document.getElementById('diffChart').getContext('2d');
       if (diffChart) diffChart.destroy();
       diffChart = new Chart(ctx2, {
         type: 'line',
         data: {
-          labels: NOMINALS_BASE,
-          datasets: [{
-            label: 'ΔTVI',
-            data: diff,
-            borderColor: 'red',
-            backgroundColor: 'rgba(255,0,0,0.1)',
-            tension: 0.35,
-            pointRadius: 4
-          }]
+          labels: TARGET,
+          datasets: [
+            {
+              label: 'ΔTVI',
+              data: diff,
+              borderColor: '#c92a2a',
+              backgroundColor: 'rgba(201,42,42,0.12)',
+              pointRadius: 4,
+              pointBackgroundColor: '#fff',
+              pointBorderColor: '#c92a2a',
+              tension: 0.4
+            }
+          ]
         },
         options: {
           responsive: true,
-          maintainAspectRatio: false,
+          maintainAspectRatio: true,
+          aspectRatio: 1.6,
+          plugins: {
+            legend: { display: false }
+          },
           scales: {
             y: {
               title: { display: true, text: 'Diferència (%)' },
               suggestedMin: -6,
-              suggestedMax: 6
+              suggestedMax: 6,
+              grid: { color: 'rgba(0,0,0,0.05)' }
+            },
+            x: {
+              title: { display: true, text: 'Percentatge (%)' }
             }
-          },
-          plugins: { legend: { display: false } }
+          }
         }
       });
 
-      // RESULTAT
-      const r = document.getElementById('resultat');
+      // tolerància
+      const maxDiff = Math.max(...diff.map(d => Math.abs(d)));
+      const resDiv = document.getElementById('resultat');
       if (maxDiff <= 3) {
-        r.innerHTML = "✅ Dins tolerància ISO (±3%) · Δmax = " + maxDiff.toFixed(1) + "%";
+        resDiv.textContent = `✅ Dins tolerància ISO (±3%) · Δmax = ${maxDiff.toFixed(1)}%`;
+        resDiv.className = 'resultat ok';
       } else {
-        r.innerHTML = "⚠️ Fora de tolerància · Δmax = " + maxDiff.toFixed(1) + "%";
+        resDiv.textContent = `⚠️ Fora de tolerància · Δmax = ${maxDiff.toFixed(1)}%`;
+        resDiv.className = 'resultat ko';
       }
     }
 
-    window.addEventListener('load', comparar);
+    document.getElementById('btn').addEventListener('click', buildCharts);
+
+    // primera vegada
+    buildCharts();
   </script>
 </body>
 </html>
