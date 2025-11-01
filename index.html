@@ -3,105 +3,205 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Comparador FOGRA51 – Guany de Punt</title>
+  <title>Comparador TVI · FOGRA51 / 52</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-
   <header>
-    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Color_wheel_subtractive.svg/120px-Color_wheel_subtractive.svg.png" alt="Color CMYK">
-    <h2>Comparació amb l’estàndard FOGRA51</h2>
+    <h1>Comparació de guany de punt (TVI)</h1>
+    <p>FOGRA51 / FOGRA52 · CMYK</p>
   </header>
 
   <main>
-    <p>
-      Introdueix les teves lectures de guany de punt (TVI) separades per comes, seguint aquest format:
-    </p>
+    <section class="bloc">
+      <p><strong>Format d'entrada (2 línies):</strong></p>
+      <pre>
+0,10,20,30,40,50,60,70,80,90,100
+0,14,28,37,46,53,58,62,65,67,100
+      </pre>
 
-    <pre>
-Percentatges: 0,10,20,30,40,50,60,70,80,90,100
-Valors mesurats: 0,14,28,37,46,53,58,62,65,67,100
-    </pre>
+      <div class="grid">
+        <div>
+          <label for="estandard">Estàndard</label>
+          <select id="estandard">
+            <option value="FOGRA51" selected>FOGRA51 (PSO coated v3)</option>
+            <option value="FOGRA52">FOGRA52 (PSO uncoated v3)</option>
+          </select>
+        </div>
+        <div>
+          <label for="canal">Canal</label>
+          <select id="canal">
+            <option value="C">Cian</option>
+            <option value="M">Magenta</option>
+            <option value="Y">Groc</option>
+            <option value="K">Negre</option>
+          </select>
+        </div>
+      </div>
 
-    <label for="canal">Canal:</label>
-    <select id="canal">
-      <option value="C">Cian</option>
-      <option value="M">Magenta</option>
-      <option value="Y">Groc</option>
-      <option value="K">Negre</option>
-    </select>
+      <textarea id="lectures" rows="5">0,10,20,30,40,50,60,70,80,90,100
+0,18,28,37,46,53,58,62,65,67,100</textarea>
 
-    <textarea id="lectures" rows="6" placeholder="Introdueix aquí els valors mesurats..."></textarea>
+      <button onclick="comparar()">Comparar</button>
+      <p class="nota">* Han de ser 11 valors (0 → 100 cada 10%)</p>
+    </section>
 
-    <button onclick="comparar()">Comparar amb FOGRA51</button>
+    <section class="bloc">
+      <h2>Corba TVI</h2>
+      <div class="canvas-wrapper">
+        <canvas id="tviChart"></canvas>
+      </div>
+    </section>
 
-    <canvas id="grafica"></canvas>
-    <div id="resultat" class="resultat"></div>
+    <section class="bloc">
+      <h2>Diferència (mesurat − estàndard)</h2>
+      <div class="canvas-wrapper-sm">
+        <canvas id="diffChart"></canvas>
+      </div>
+      <div id="resultat" class="resultat"></div>
+    </section>
   </main>
 
-  <footer>
-    <p>© 2025 Comparador FOGRA51 – Desenvolupat per xmoles-svg</p>
-  </footer>
+  <footer>© 2025 · eina de prova TVI</footer>
 
   <script>
-    // Valors oficials FOGRA51 (TVI)
-    const fogra51 = {
-      "C": [0,15,27,37,45,52,57,61,64,67,100],
-      "M": [0,17,29,39,47,54,59,63,66,68,100],
-      "Y": [0,13,25,35,43,49,54,58,61,63,100],
-      "K": [0,18,30,39,47,54,59,63,66,68,100]
+    // valors de referència
+    const TVI = {
+      FOGRA51: {
+        C: [0,15,27,37,45,52,57,61,64,67,100],
+        M: [0,17,29,39,47,54,59,63,66,68,100],
+        Y: [0,13,25,35,43,49,54,58,61,63,100],
+        K: [0,18,30,39,47,54,59,63,66,68,100]
+      },
+      // aproximació per tenir una forma d'uncoated
+      FOGRA52: {
+        C: [0,14,26,36,44,51,56,60,63,66,100],
+        M: [0,16,28,38,46,53,58,62,65,67,100],
+        Y: [0,12,24,34,42,48,53,57,60,62,100],
+        K: [0,17,29,38,46,53,58,62,65,67,100]
+      }
     };
 
+    let tviChart = null;
+    let diffChart = null;
+
     function comparar() {
+      const estandard = document.getElementById('estandard').value;
       const canal = document.getElementById('canal').value;
       const text = document.getElementById('lectures').value.trim().split('\n');
 
       if (text.length < 2) {
-        alert("Has d'introduir dues línies: percentatges i valors mesurats.");
+        alert("Posa 2 línies: percentatges i mesurats.");
         return;
       }
 
-      const percent = text[0].split(',').map(Number);
-      const mesurat = text[1].split(',').map(Number);
-      const ref = fogra51[canal];
+      const percent = text[0].split(',').map(v => Number(v.trim()));
+      const mesurat = text[1].split(',').map(v => Number(v.trim()));
+      const ref = TVI[estandard][canal];
 
-      if (percent.length !== ref.length || mesurat.length !== ref.length) {
-        alert("Els valors han de tenir 11 punts: 0–100% en increments de 10.");
+      if (percent.length !== 11 || mesurat.length !== 11) {
+        alert("Han de ser exactament 11 valors.");
         return;
       }
 
       const diff = mesurat.map((v, i) => v - ref[i]);
+      const maxDiff = Math.max(...diff.map(d => Math.abs(d)));
 
-      const ctx = document.getElementById('grafica').getContext('2d');
-      new Chart(ctx, {
+      // --- gràfic principal ---
+      const tviCtx = document.getElementById('tviChart').getContext('2d');
+      if (tviChart) tviChart.destroy();
+      tviChart = new Chart(tviCtx, {
         type: 'line',
         data: {
           labels: percent,
           datasets: [
-            { label: 'Mesurat', data: mesurat, borderColor: '#007bff', tension: 0.2 },
-            { label: 'FOGRA51', data: ref, borderColor: '#666', borderDash: [5,5], tension: 0.2 },
-            { label: 'ΔTVI (mesurat - estàndard)', data: diff, borderColor: 'red', tension: 0.2, yAxisID: 'diff' }
+            {
+              label: 'Mesurat',
+              data: mesurat,
+              borderColor: '#007bff',
+              backgroundColor: 'transparent',
+              cubicInterpolationMode: 'monotone',
+              tension: 0.45,
+              pointRadius: 3
+            },
+            {
+              label: estandard + ' (' + canal + ')',
+              data: ref,
+              borderColor: '#888',
+              backgroundColor: 'transparent',
+              borderDash: [5,5],
+              cubicInterpolationMode: 'monotone',
+              tension: 0.45,
+              pointRadius: 3
+            }
           ]
         },
         options: {
+          maintainAspectRatio: false,
           scales: {
-            y: { beginAtZero: true, title: { display: true, text: 'Guany de punt (%)' } },
-            diff: { position: 'right', title: { display: true, text: 'Diferència' } }
+            y: {
+              beginAtZero: true,
+              suggestedMax: 105,
+              title: { display: true, text: 'Guany de punt (%)' },
+              grid: { color: 'rgba(0,0,0,0.05)' }
+            }
           },
-          plugins: { legend: { position: 'bottom' } }
+          plugins: {
+            legend: { position: 'bottom' }
+          }
         }
       });
 
-      const maxDiff = Math.max(...diff.map(d => Math.abs(d)));
-      const resultat = document.getElementById('resultat');
-      if (maxDiff <= 3)
-        resultat.textContent = "✅ Dins tolerància ISO (±3%)";
-      else
-        resultat.textContent = "⚠️ Fora de tolerància (diferència màxima " + maxDiff.toFixed(1) + "%)";
-    }
-  </script>
+      // --- gràfic de diferències ---
+      const diffCtx = document.getElementById('diffChart').getContext('2d');
+      if (diffChart) diffChart.destroy();
+      diffChart = new Chart(diffCtx, {
+        type: 'line',
+        data: {
+          labels: percent,
+          datasets: [
+            {
+              label: 'Δ TVI',
+              data: diff,
+              borderColor: 'red',
+              backgroundColor: 'transparent',
+              tension: 0.3,
+              pointRadius: 2,
+              borderWidth: 2,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              suggestedMin: -6,
+              suggestedMax: 6,
+              title: { display: true, text: 'Diferència (%)' },
+              grid: { color: 'rgba(255,0,0,0.08)' }
+            }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
 
+      // resultat
+      const resultat = document.getElementById('resultat');
+      if (maxDiff <= 3) {
+        resultat.textContent = "✅ Dins tolerància ISO (±3%) · Δmax = " + maxDiff.toFixed(1) + " %";
+        resultat.className = "resultat ok";
+      } else {
+        resultat.textContent = "⚠️ Fora de tolerància · Δmax = " + maxDiff.toFixed(1) + " %";
+        resultat.className = "resultat ko";
+      }
+    }
+
+    // dibuixa una primera vegada
+    window.addEventListener('load', comparar);
+  </script>
 </body>
 </html>
-
